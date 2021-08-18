@@ -29,16 +29,16 @@ findWithDir puzzle (c:cs) point@(x, y) dir
   | otherwise = Nothing
 
 findFromStart :: Puzzle -> String -> Vec -> Maybe [Vec]
-findFromStart puzzle word start = asum ls
+findFromStart puzzle word start = asum pointsOfDirs
  where
-  ls = findWithDir puzzle word start <$> ds
-  ds = filter (/= (0, 0)) $ liftA2 (,) [-1..1] [-1..1]
+  pointsOfDirs = findWithDir puzzle word start <$> dirs
+  dirs = filter (/= (0, 0)) $ liftA2 (,) [-1..1] [-1..1]
 
 findWord :: Puzzle -> String -> Maybe [Vec]
 findWord puzzle "" = Nothing
-findWord puzzle word@(c:_) = asum pointsOfDirs
+findWord puzzle word@(c:_) = asum pointsFromStarts
  where
-  pointsOfDirs = findFromStart puzzle word <$> startPoints
+  pointsFromStarts = findFromStart puzzle word <$> startPoints
   startPoints = [(x, y) | (y, row) <- zip [0..] puzzle, 
     (x, c') <- zip [0..] row, c' == c]
 
