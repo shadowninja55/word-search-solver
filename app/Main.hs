@@ -61,12 +61,12 @@ readLines = do
 
 main :: IO ()
 main = do
-  putStrLn "lines: \n"
+  putStrLn "puzzle: \n"
   puzzle <- readLines
   putStrLn "words: \n"
   words <- readLines
   let pointsOfWords = findWord puzzle <$> words
   traverse_ (displayWord puzzle) $ zip words pointsOfWords
  where
-  displayWord puzzle (word, points) = putStrLn $ word ++ "\n" 
-    ++ renderWord puzzle word (fromMaybe [] points)
+  displayWord puzzle (word, points) = putStr . unlines $ [word,
+    renderWord puzzle word (fromMaybe [] points)]
