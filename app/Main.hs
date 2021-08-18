@@ -27,7 +27,7 @@ inBounds :: Puzzle -> Vec -> Bool
 inBounds pz p = 0 <= fst p && fst p < length (head pz) && 0 <= snd p && snd p < length pz
 
 findWithDir :: Puzzle -> String -> Vec -> Vec -> Maybe [Vec]
-findWithDir _ [] _ _ = Just []
+findWithDir _ "" _ _ = Just []
 findWithDir pz (c:cs) p d = if inBounds pz p && pz !! snd p !! fst p == c
   then (p :) <$> findWithDir pz cs (add p d) d
   else Nothing
