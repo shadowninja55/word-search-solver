@@ -14,6 +14,42 @@ type Vec = (Int, Int)
 add :: Vec -> Vec -> Vec
 add (a, b) (c, d) = (a + c, b + d)
 
+inBounds :: Puzzle -> Vec -> Bool
+inBounds [] _ = False
+inBounds puzzle@(row:_) (x, y) = and [ 0 <= x, x < width, 0 <= y, y < height ]
+ where
+  width = length row
+  height = length puzzle
+
+findWithDir :: Puzzle -> String -> Vec -> Vec -> Maybe [Vec]
+findWithDir _ "" _ _ = Just []
+findWithDir puzzle (c:cs) point@(x, y) dir
+  | inBounds puzzle point && puzzle !! y !! x == c 
+    = (point :) <$> findWithDir puzzle cs (add point dir) dir
+  | otherwise = Nothing
+
+findFromStart :: Puzzle -> String -> Vec -> Maybe [Vec]
+findFromStart puzzle word start = asum ls
+ where
+  ls = findWithDir puzzle word start <$> ds
+  ds = filter (/= (0, 0)) $ liftA2 (,) [-1..1] [-1..1]
+
+findWord :: Puzzle -> String -> Maybe [Vec]
+findWord puzzle "" = Nothing
+findWord puzzle word@(c:_) = asum pointsOfDirs
+ where
+  pointsOfDirs = findFromStart puzzle word <$> startPoints
+  startPoints = [(x, y) | (y, row) <- zip [0..] puzzle, 
+    (x, c') <- zip [0..] row, c' == c]
+
+renderWord :: Puzzle -> String -> [Vec] -> String
+renderWord puzzle w l = unlines $ unwords <$> grid
+ where
+  grid = zipWith3 (zipWith3 pointColor) (repeat [0..]) (repeat <$> [0..]) puzzle
+  pointColor x y c = (if S.member (x, y) pointSet then color Green 
+    else style Faint) [c] :: String
+  pointSet = S.fromList l
+
 readLines :: IO [String]
 readLines = do
   line <- getLine
@@ -23,46 +59,14 @@ readLines = do
       rest <- readLines
       pure $ line : rest
 
-inBounds :: Puzzle -> Vec -> Bool
-inBounds pz p = 0 <= fst p && fst p < length (head pz) && 0 <= snd p && snd p < length pz
-
-findWithDir :: Puzzle -> String -> Vec -> Vec -> Maybe [Vec]
-findWithDir _ "" _ _ = Just []
-findWithDir pz (c:cs) p d = if inBounds pz p && pz !! snd p !! fst p == c
-  then (p :) <$> findWithDir pz cs (add p d) d
-  else Nothing
-
-findFromStart :: Puzzle -> String -> Vec -> Maybe [Vec]
-findFromStart pz w s = asum ls
- where
-  ls = findWithDir pz w s <$> ds
-  ds = filter (/= (0, 0)) $ liftA2 (,) [-1..1] [-1..1]
-
-findWord :: Puzzle -> String -> Maybe [Vec]
-findWord pz w = asum ls
- where
-  ls = findFromStart pz w <$> ss
-  ss = [(x, y) | (y, r) <- zip [0..] pz, (x, c) <- zip [0..] r, c == head w]
-
-renderWord :: Puzzle -> String -> [Vec] -> String
-renderWord pz w l = unlines $ unwords <$> cvls
- where
-  cvls = zipWith3 (zipWith3 f) (repeat [0..]) (repeat <$> [0..]) pz
-  f x y c = (if S.member (x, y) s
-    then color Green
-    else style Faint) [c] :: String
-  s = S.fromList l
-
 main :: IO ()
 main = do
   putStrLn "lines: \n"
-  pz <- readLines
+  puzzle <- readLines
   putStrLn "words: \n"
-  ws <- readLines
-  let ls = findWord pz <$> ws
-  traverse_ (f pz) $ zip ws ls
+  words <- readLines
+  let pointsOfWords = findWord puzzle <$> words
+  traverse_ (displayWord puzzle) $ zip words pointsOfWords
  where
-  f pz (w, l) = do
-    putStrLn w
-    putStrLn $ renderWord pz w (fromMaybe [] l)
-    void getLine
+  displayWord puzzle (word, points) = putStrLn $ word ++ "\n" 
+    ++ renderWord puzzle word (fromMaybe [] points)
